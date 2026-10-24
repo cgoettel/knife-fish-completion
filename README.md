@@ -20,11 +20,11 @@ Completions load automatically on the next fish session. No sourcing needed.
 
 ## What it does
 
-| You type                    | You get                                                 |
-| --------------------------- | ------------------------------------------------------- |
-| `knife <TAB>`               | Top-level subcommands (`node`, `cookbook`, `data`, …)   |
-| `knife node <TAB>`          | Second-level subcommands (`list`, `show`, `edit`, …)    |
-| `knife data bag show <TAB>` | All flags for `knife data bag show`, with descriptions  |
+| You type                    | You get                                                |
+| --------------------------- | ------------------------------------------------------ |
+| `knife <TAB>`               | Top-level subcommands (`node`, `cookbook`, `data`, …)  |
+| `knife node <TAB>`          | Second-level subcommands (`list`, `show`, `edit`, …)   |
+| `knife data bag show <TAB>` | All flags for `knife data bag show`, with descriptions |
 
 Flag descriptions come straight from `knife <cmd> --help`. Top-level category descriptions are hand-written because `knife` doesn't provide them.
 
@@ -47,3 +47,7 @@ On Apple Silicon the amd64 image runs under emulation, so expect a few minutes.
 ## License
 
 See [LICENSE](LICENSE).
+
+## Roadmap
+
+- [#2 Staff-engineer handover](https://gitlab.com/colby.goettel/knife-fish-completion/-/work_items/2) (`Present`): a one-session exercise where an agent plays a staff engineer inheriting the repository. It interviews the owner for knowledge transfer, folds the answers into the docs, then proposes what it would do differently, discussed before anything is filed.
