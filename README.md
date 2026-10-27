@@ -51,3 +51,4 @@ See [LICENSE](LICENSE).
 ## Roadmap
 
 - [#2 Staff-engineer handover](https://gitlab.com/colby.goettel/knife-fish-completion/-/work_items/2) (`Present`): a one-session exercise where an agent plays a staff engineer inheriting the repository. It interviews the owner for knowledge transfer, folds the answers into the docs, then proposes what it would do differently, discussed before anything is filed.
+- [#3 Add README badges](https://gitlab.com/colby.goettel/knife-fish-completion/-/work_items/3) (`Agent-ready`): pipeline, supported knife version, and MIT license badges at the top of this README.
