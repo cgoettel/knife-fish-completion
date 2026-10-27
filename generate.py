@@ -7,6 +7,7 @@ resulting fish `complete` lines into knife.fish between the BEGIN/END markers.
 
 Requires: docker, python3.
 """
+
 import re
 import subprocess
 import sys
@@ -22,7 +23,9 @@ END_MARKER = "# ---------- END GENERATED ----------"
 def docker_knife_bare():
     r = subprocess.run(
         ["docker", "run", "--rm", "--platform", PLATFORM, IMAGE, "knife"],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
+        check=False,  # knife exits non-zero on --help; output is what we want
     )
     return r.stdout + r.stderr
 
@@ -34,7 +37,7 @@ def extract_path(line):
     s = line.strip()
     if not s.startswith("knife "):
         return None
-    rest = s[len("knife "):]
+    rest = s[len("knife ") :]
     path = []
     for tok in rest.split():
         if tok[:1] in "[(<" or _CAPS.match(tok):
@@ -81,13 +84,15 @@ def parse_options(help_text):
         if key in seen:
             continue
         seen.add(key)
-        out.append({
-            "short": m.group("short"),
-            "long": m.group("long"),
-            "nobool": bool(m.group("nobool")),
-            "takes_value": bool(m.group("value")),
-            "desc": m.group("desc").strip(),
-        })
+        out.append(
+            {
+                "short": m.group("short"),
+                "long": m.group("long"),
+                "nobool": bool(m.group("nobool")),
+                "takes_value": bool(m.group("value")),
+                "desc": m.group("desc").strip(),
+            }
+        )
     return out
 
 
@@ -107,9 +112,11 @@ def emit_flag(path, opt):
     parts.append(f"-d '{fish_quote(opt['desc'])}'")
     lines.append(" ".join(parts))
     if opt["nobool"]:
-        neg = [f"complete -c knife -n '{cond}'",
-               f"-l no-{opt['long']}",
-               f"-d '{fish_quote(opt['desc'])}'"]
+        neg = [
+            f"complete -c knife -n '{cond}'",
+            f"-l no-{opt['long']}",
+            f"-d '{fish_quote(opt['desc'])}'",
+        ]
         lines.append(" ".join(neg))
     return lines
 
@@ -118,12 +125,24 @@ def dump_all_help(paths):
     script = []
     for p in paths:
         script.append(f'printf "===BEGIN %s===\\n" "{p}"')
-        script.append(f'knife {p} --help 2>&1 || true')
+        script.append(f"knife {p} --help 2>&1 || true")
         script.append(f'printf "===END %s===\\n" "{p}"')
     r = subprocess.run(
-        ["docker", "run", "--rm", "--platform", PLATFORM,
-         "--entrypoint", "bash", IMAGE, "-c", "\n".join(script)],
-        capture_output=True, text=True,
+        [
+            "docker",
+            "run",
+            "--rm",
+            "--platform",
+            PLATFORM,
+            "--entrypoint",
+            "bash",
+            IMAGE,
+            "-c",
+            "\n".join(script),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,  # knife exits non-zero on --help; output is what we want
     )
     return r.stdout
 
@@ -134,7 +153,7 @@ def split_dump(dump):
     buf = []
     for line in dump.splitlines():
         if line.startswith("===BEGIN "):
-            current = line[len("===BEGIN "):].rstrip("=").rstrip()
+            current = line[len("===BEGIN ") :].rstrip("=").rstrip()
             buf = []
         elif line.startswith("===END "):
             if current is not None:
@@ -146,9 +165,11 @@ def split_dump(dump):
 
 
 def build_block(paths, help_sections):
-    out = [BEGIN_MARKER,
-           "# Regenerate with ./generate.py. Do not edit this block by hand.",
-           ""]
+    out = [
+        BEGIN_MARKER,
+        "# Regenerate with ./generate.py. Do not edit this block by hand.",
+        "",
+    ]
 
     # Expand to include intermediate prefixes so the commandline-path helper
     # can match partial paths like "node" or "data bag" even when only the
@@ -176,7 +197,9 @@ def build_block(paths, help_sections):
     out.append("# Subcommand edges")
     for parent in sorted(by_parent):
         for child in sorted(by_parent[parent]):
-            out.append(f"complete -c knife -n '__fish_knife_path_is \"{parent}\"' -a {child}")
+            out.append(
+                f"complete -c knife -n '__fish_knife_path_is \"{parent}\"' -a {child}"
+            )
     out.append("")
 
     out.append("# Flags per subcommand")
@@ -204,7 +227,7 @@ def splice(original, block):
             break
     if start is None or end is None:
         sys.exit("ERROR: BEGIN/END GENERATED markers not found in knife.fish")
-    return "".join(lines[:start]) + block + "\n" + "".join(lines[end + 1:])
+    return "".join(lines[:start]) + block + "\n" + "".join(lines[end + 1 :])
 
 
 def main():
@@ -213,7 +236,10 @@ def main():
     paths = parse_paths(listing)
     print(f"  found {len(paths)} subcommand paths", file=sys.stderr)
 
-    print("Dumping --help for all subcommands (one container, may take a while)...", file=sys.stderr)
+    print(
+        "Dumping --help for all subcommands (one container, may take a while)...",
+        file=sys.stderr,
+    )
     dump = dump_all_help(paths)
     sections = split_dump(dump)
     print(f"  captured help for {len(sections)} paths", file=sys.stderr)

@@ -1,0 +1,38 @@
+repos:
+  # The global hygiene tier (dotfiles git/.config/pre-commit/global.yaml),
+  # mirrored for CI on the `manual` stage; locally the global hook already runs
+  # these on commit. Keep revs and plugin versions in step with that file.
+  # Secret scanning is its own CI job (gitleaks over the full history).
+  #
+  # CI: pre-commit run --hook-stage manual --all-files
+  - repo: https://github.com/hukkin/mdformat
+    rev: 1.0.0
+    hooks:
+      - id: mdformat
+        name: mdformat (markdown, check only)
+        args: [--number, --check]
+        stages: [manual]
+        additional_dependencies:
+          - mdformat-gfm==1.0.0
+          - mdformat-frontmatter==2.1.2
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        stages: [manual]
+      - id: end-of-file-fixer
+        stages: [manual]
+      - id: mixed-line-ending
+        stages: [manual]
+      - id: check-added-large-files
+        stages: [manual]
+      - id: check-merge-conflict
+        stages: [manual]
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+        args: [--severity=warning, --norc]
+        stages: [manual]
