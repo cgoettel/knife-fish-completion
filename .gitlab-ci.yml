@@ -1,7 +1,71 @@
+# Merge-request pipeline: the same checks as the owner's global pre-commit
+# hook, plus secret scanning, so commits made off his Mac (or by Renovate, or in
+# the web editor) are checked too. It also gives merge-mr a pipeline to gate on.
+# Also checks knife.fish parses and lints generate.py, and mirrors main to GitHub.
+#
+# Every job runs on this repo's own in-cluster runner (smart-home
+# kubernetes/knife-fish-completion-runner, Kubernetes executor on deskf02). Shared GitLab-hosted
+# runners are disabled on the project.
+
+# Pipelines run for merge requests, and for pushes to a branch with no open MR
+# (so the default branch). No duplicate branch + MR pipelines.
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+default:
+  tags:
+    - self-hosted
+
+# Markdown formatting, file hygiene, and shellcheck, check only.
+check_format:
+  image: python:3.14-slim
+  variables:
+    PRE_COMMIT_HOME: $CI_PROJECT_DIR/.cache/pre-commit
+  cache:
+    key:
+      files:
+        - .pre-commit-config.yaml
+    paths:
+      - .cache/
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq git >/dev/null
+    - pip install -q pre-commit==4.3.0
+  script:
+    - pre-commit run --hook-stage manual --all-files --show-diff-on-failure
+
+# Secret scanning over the full history.
+check_secrets:
+  image:
+    name: zricethezav/gitleaks:v8.30.0
+    entrypoint: [""]
+  variables:
+    GIT_DEPTH: 0
+  script:
+    - gitleaks git --redact --verbose .
+
+# fish syntax check (parse only, nothing runs).
+check_fish:
+  image: debian:bookworm-slim
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq fish git >/dev/null
+  script:
+    - git ls-files -z "*.fish" | xargs -0 -n1 fish --no-execute
+
+# Lint and format-check the completion generator.
+check_python:
+  image: ghcr.io/astral-sh/uv:python3.14-bookworm
+  script:
+    - uvx ruff@0.17.3 check generate.py
+    - uvx ruff@0.17.3 format --check generate.py
+
 # Mirror main to github.com/cgoettel/knife-fish-completion on every push to main.
 # GITHUB_DEPLOY_KEY is a File-type CI variable holding the SSH private key
 # whose public half is a write-enabled deploy key on the GitHub repo.
-
 mirror_to_github:
   image:
     name: alpine/git:latest
