@@ -63,24 +63,10 @@ check_python:
     - uvx ruff@0.17.3 check generate.py
     - uvx ruff@0.17.3 format --check generate.py
 
-# Mirror main to github.com/cgoettel/knife-fish-completion on every push to main.
-# GITHUB_DEPLOY_KEY is a File-type CI variable holding the SSH private key
-# whose public half is a write-enabled deploy key on the GitHub repo.
-mirror_to_github:
-  image:
-    name: alpine/git:latest
-    entrypoint: [""]
-  variables:
-    GIT_STRATEGY: clone
-  before_script:
-    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
-    # glab strips trailing newline from variable values — re-add it
-    - cp "$GITHUB_DEPLOY_KEY" ~/.ssh/id_ed25519
-    - printf '\n' >> ~/.ssh/id_ed25519
-    - chmod 600 ~/.ssh/id_ed25519
-    - ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
-  script:
-    - git remote add github git@github.com:cgoettel/knife-fish-completion.git
-    - git push --force github HEAD:refs/heads/main
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
+# GitLab → GitHub mirror: the shared job in smart-home's
+# ci/templates/mirror-to-github.yml (smart-home #299). This repo keeps its own
+# GITHUB_DEPLOY_KEY CI variable.
+include:
+  - project: colby.goettel/smart-home
+    ref: main
+    file: ci/templates/mirror-to-github.yml
